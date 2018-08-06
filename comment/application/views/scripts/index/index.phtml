@@ -1,0 +1,111 @@
+<script>
+
+$(function() {
+                $(".form1SubmitBtn").click(function(e) {
+                    e.preventDefault();
+                    $.ajax({
+                        url: 'index/ajax',
+                        type: 'POST',
+                        data: {name: $("input[name=name]" ).val(), 
+                               parentId: $("input[name=parentId]" ).val(),
+                               comment: $("textarea[name=comment]" ).val() },
+                           
+                        beforeSend: function() {
+                            $("#message").html("sending...");
+                        },
+                        success: function(data) {
+                            $("#message").hide();
+                            index = $("input[name=parentId]" ).val();
+                            $('#com'+index)
+                                    .append('<ul><li><b>'+$("input[name=name]" ).val()
+                                        +'</b> '+$("textarea[name=comment]" ).val()+'</li></ul>')
+                        }
+                    });
+                });
+            });
+    
+    
+function reply(id, name)
+{
+    $( "#reply" ).html( "Reply to "+name);
+                
+     $("input[name=parentId]" ).val(id);          
+                
+}
+</script>
+
+<?php
+
+function makeTree($d, $r = 0, $pk = 'parent', $k = 'id', $c = 'children') {
+          $m = array();
+          foreach ($d as $e) {
+            isset($m[$e[$pk]]) ?: $m[$e[$pk]] = array();
+            isset($m[$e[$k]]) ?: $m[$e[$k]] = array();
+            $m[$e[$pk]][] = array_merge($e, array($c => &$m[$e[$k]]));
+          }
+
+          return $m[$r]; 
+        }
+
+               
+        
+        function nestedOutput($data) {
+          $result = array();
+
+          if (sizeof($data) > 0) {
+            $result[] = '<ul>';
+            
+            foreach ($data as $entry) {
+                
+                // Display Reply Link only up to level 3 of nested replies
+                if($entry['parrentCount']<3) 
+                {
+                    $result[] = sprintf(
+                    '<a href="#" onclick="reply('.$entry['id'].',\''.$entry['name'].'\')">Reply</a>' 
+                          .' <li id="com'.$entry['id'].'" class="bg-info"><b>%s</b>: %s %s '
+                          .'</li>'.PHP_EOL,
+                    $entry['name'],$entry['comment'],
+                    nestedOutput($entry['children'])
+                  );
+                }
+                else
+                {
+                   $result[] = sprintf(       
+                         ' <li id="com'.$entry['id'].'"><b>%s</b>: %s %s '
+                          .'</li>'.PHP_EOL,
+                    $entry['name'],$entry['comment'],
+                    nestedOutput($entry['children'])
+                           );
+                }
+            
+            }
+           
+            $result[] = '</ul>';
+          }
+
+          return implode($result);
+        }
+
+        echo nestedOutput((makeTree( $this->comments )));
+?>
+ 
+<div id="com"></div>
+<div id="response"></div>
+
+        <div id="message"></div>
+
+<br>
+<h2><?=$this->message?></h2>
+<h4>Add a comment</h4>
+<div id="reply"></div>
+<div id="replyDiv" class="col-md-4">
+<form action="index/ajax" method="post" class="replyForm" >
+    
+    <input type="text" name="name" placeholder="Name"><br>
+    <textarea name="comment" rows="4" cols="50" placeholder="Your comments here..."></textarea>
+    <br>
+    <input type="hidden" name="parentId" id="parentId" value="">
+    <button class="form1SubmitBtn btn btn-default">Submit</button>
+
+</form>
+    </div>
